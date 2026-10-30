@@ -60,7 +60,7 @@ const SCENES = [
   ["Napoleon Dynamite: the dance", "Out-dance him on stage"],
   ["Pulp Fiction: the twist contest", "Do the twist beside Vincent and Mia"],
   ["Rick Astley: Never Gonna Give You Up", "Be the backup dancer, a beat late"],
-  ["Apollo 11: planting the flag", "Photobomb the moon landing"],
+  ["Michael Jackson: Billie Jean (Motown 25)", "Moonwalk right alongside him"],
   ["The Beatles: rooftop concert", "Air guitar next to the band"],
   ["Saturday Night Fever: Tony's solo", "Challenge him to a dance-off"],
 ];

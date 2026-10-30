@@ -119,11 +119,11 @@ def sam3_mask(video, text="person", threshold=0.4, prefix="cameo/sam3"):
 
 def cameo_app(url, photo, action="", start="", end="", max_shots=4, make_cameo=True, suggestion="(my own video)",
               webcam=False,
-              max_frames=49, height=192, fps=12, seed=1, only_cast_shots=False, prefix="cameo/app", debug=False, takes=2):
+              max_frames=49, quality="draft (fastest)", seed=1, only_cast_shots=False, prefix="cameo/app", debug=False, takes=2):
     """The whole app as ONE ComfyUI graph: inputs are a video URL, a photo and an action; output is a video.
     CameoCast outputs lists, so the Klein / LTX / SAM3 sections run once per cast shot (list execution)."""
     g = Graph()
-    fetch = g.add("CameoFetch", suggestion=suggestion, url=url, start=start, end=end, height=height, fps=fps,
+    fetch = g.add("CameoFetch", suggestion=suggestion, url=url, start=start, end=end, quality=quality,
                   cut_threshold=15.0)
     g.add("PreviewAny", source=fetch(2))
     upload = g.add("LoadImage", image=photo)

@@ -6,8 +6,7 @@
    "url": "",
    "start": "",
    "end": "",
-   "height": 192,
-   "fps": 12,
+   "quality": "draft (fastest)",
    "cut_threshold": 15.0
   }
  },
@@ -124,7 +123,10 @@
     "7",
     0
    ],
-   "text": ""
+   "text": [
+    "5",
+    11
+   ]
   }
  },
  "12": {
@@ -320,7 +322,10 @@
     "23",
     0
    ],
-   "text": "pc game, console game, video game, cartoon, childish, ugly"
+   "text": [
+    "5",
+    12
+   ]
   }
  },
  "26": {
@@ -446,7 +451,10 @@
     "35",
     1
    ],
-   "text": "person"
+   "text": [
+    "5",
+    13
+   ]
   }
  },
  "37": {

@@ -18,6 +18,17 @@ SHOTS = io.Custom("CAMEO_SHOTS")
 HINT = io.Custom("CAMEO_HINT")
 
 OWN = "(my own video)"
+
+# Draft is the default on purpose: everything runs at the lowest resolution so a run takes minutes, not an hour.
+QUALITY = {
+    "draft (fastest)": {"height": 192, "fps": 12,
+                        "format": "worstvideo[height>=144][protocol=https]+worstaudio[protocol=https]/"
+                                  "worstvideo[height>=144]+worstaudio/worst"},
+    "standard": {"height": 288, "fps": 16,
+                 "format": "bv*[height<=360][protocol=https]+ba[protocol=https]/b[height<=360]/worst"},
+    "high (slow)": {"height": 384, "fps": 24,
+                    "format": "bv*[height<=720][protocol=https]+ba[protocol=https]/b[height<=720]/worst"},
+}
 SUGGESTIONS = {
     "Napoleon Dynamite: the dance": ("https://www.youtube.com/watch?v=WGdc92EOdm0", "", "",
                                      "breaks into a wild, goofy, over-the-top dance to out-dance him: flailing arms, "
@@ -26,8 +37,9 @@ SUGGESTIONS = {
                                         "does the twist right beside them, completely committed, finger guns and all"),
     "Rick Astley: Never Gonna Give You Up": ("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "0:30", "1:30",
                                              "is a backup dancer, nailing every sway and step a beat late"),
-    "Apollo 11: planting the flag": ("https://www.youtube.com/watch?v=wd6ekSYpt9w", "", "",
-                                     "wanders into the shot, waves at the camera and photobombs the astronauts"),
+    "Michael Jackson: Billie Jean (Motown 25)": ("https://www.youtube.com/watch?v=iQrjmTrVx4Q", "3:00", "4:00",
+                                                 "moonwalks right alongside him, matching every spin, kick and "
+                                                 "toe-stand"),
     "The Beatles: rooftop concert": ("https://www.youtube.com/watch?v=oI8Aw0IGM1I", "0:30", "1:30",
                                      "plays furious air guitar next to the band"),
     "Saturday Night Fever: Tony's solo": ("https://www.youtube.com/watch?v=fT42ocqmI9s", "0:20", "1:20",
@@ -77,8 +89,9 @@ class CameoFetch(io.ComfyNode):
                                         "Filling this in overrides the suggestion."),
                 io.String.Input("start", default="", tooltip="Optional start time, e.g. 0:30."),
                 io.String.Input("end", default="", tooltip="Optional end time, e.g. 1:10."),
-                io.Int.Input("height", default=192, min=96, max=1080, step=32, tooltip="Keep it tiny while iterating."),
-                io.Int.Input("fps", default=12, min=6, max=30),
+                io.Combo.Input("quality", options=list(QUALITY), default=next(iter(QUALITY)),
+                               tooltip="draft: 192 px, 12 fps (fastest, the default). standard: 288 px, 16 fps, about "
+                                       "3x the time. high: 384 px, 24 fps, about 8x the time."),
                 io.Float.Input("cut_threshold", default=15.0, min=1.0, max=100.0, tooltip="Shot-cut sensitivity."),
             ],
             outputs=[io.Video.Output(display_name="video"), SHOTS.Output(display_name="shots"),
@@ -86,7 +99,9 @@ class CameoFetch(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, suggestion, url, start, end, height, fps, cut_threshold) -> io.NodeOutput:
+    def execute(cls, suggestion, url, start, end, quality, cut_threshold) -> io.NodeOutput:
+        q = QUALITY.get(quality, next(iter(QUALITY.values())))
+        height, fps = q["height"], q["fps"]
         action = ""
         if not url.strip() and suggestion in SUGGESTIONS:
             url, s_start, s_end, action = SUGGESTIONS[suggestion]
@@ -95,7 +110,7 @@ class CameoFetch(io.ComfyNode):
             raise ValueError("Pick a suggestion, or type a video URL or search words.")
         work = tempfile.mkdtemp(prefix="cameo_", dir=folder_paths.get_temp_directory())
         raw = os.path.join(work, "raw.mp4")
-        cmd = [sys.executable, "-m", "yt_dlp", "-q", "--no-warnings", "-f", "worstvideo[height>=144][protocol=https]+worstaudio[protocol=https]/worstvideo[height>=144]+worstaudio/worst",
+        cmd = [sys.executable, "-m", "yt_dlp", "-q", "--no-warnings", "-f", q["format"],
                "--merge-output-format", "mp4", "--ffmpeg-location", _ffmpeg(), "-o", raw, "--force-overwrites",
                "--no-simulate", "--print", "%(title)s (%(duration_string)s)", "--print-to-file", "%(title)s",
                os.path.join(work, "title.txt")]
