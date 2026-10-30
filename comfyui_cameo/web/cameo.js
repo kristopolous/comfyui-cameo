@@ -82,8 +82,8 @@ function pickScene(label) {
   const { fetch, cast } = cameoNodes();
   setWidget(fetch, "suggestion", label);
   setWidget(fetch, "url", "");
-  const making = cast?.widgets?.find((w) => w.name === "make_cameo")?.value;
-  if (!making) app.queuePrompt(0, 1); // a preview only: about 15 seconds, no models loaded
+  setWidget(cast, "make_cameo", false);
+  app.queuePrompt(0, 1); // a preview only: about 15 seconds, no models loaded
 }
 
 function welcome() {
@@ -110,8 +110,8 @@ function welcome() {
     <p class="pitch">Put yourself in any video. You're <i>added</i> to the scene, next to the people already there; every original pixel stays.</p>
     <ol>
       <li><b>1 · Pick a scene</b>Click one below, or paste a link / type a search on the right.</li>
-      <li><b>2 · Check the preview</b>The clip and its title show up here in about 15 seconds.</li>
-      <li><b>3 · Make your cameo</b>Add your photo (or webcam), switch on <i>make my cameo</i>, and Run.</li>
+      <li><b>2 · Check the preview</b>Press Run: the clip and its title show up here in about 15 seconds.</li>
+      <li><b>3 · Make your cameo</b>Add your photo (or webcam) on the right, then press <i>Make my cameo</i>.</li>
     </ol>
     <h2>Try one of these</h2>
     <div class="cards"></div>
@@ -144,3 +144,43 @@ function decorate() {
 }
 
 new MutationObserver(() => decorate()).observe(document.body, { childList: true, subtree: true });
+
+// ---- "Make my cameo" button: Run previews; this button generates. Replaces the make-my-cameo toggle in the app. ----
+
+async function makeCameo(button) {
+  const { cast } = cameoNodes();
+  const toggle = cast?.widgets?.find((w) => w.name === "make_cameo");
+  if (!toggle) return;
+  button.disabled = true;
+  button.textContent = "Making your cameo… (a few minutes)";
+  setWidget(cast, "make_cameo", true);
+  try {
+    await app.queuePrompt(0, 1); // the prompt is serialized here, with generation on
+  } finally {
+    setWidget(cast, "make_cameo", false); // back to preview-only for the next Run
+    setTimeout(() => { button.disabled = false; button.textContent = "Make my cameo ▶"; }, 4000);
+  }
+}
+
+function addMakeButton() {
+  const panel = document.querySelector('[data-testid="linear-center-panel"]');
+  const existing = document.querySelector(".cameo-make");
+  const show = panel && cameoNodes().fetch && !panel.querySelector('[data-testid="linear-welcome"]');
+  if (!show) { existing?.remove(); return; }
+  if (existing && panel.contains(existing)) return;
+  const bar = document.createElement("div");
+  bar.className = "cameo-make";
+  bar.style.cssText = "display:flex;justify-content:center;gap:12px;align-items:center;padding:6px 0 2px;pointer-events:auto";
+  const b = document.createElement("button");
+  b.textContent = "Make my cameo ▶";
+  b.style.cssText = "cursor:pointer;border:none;border-radius:10px;padding:10px 22px;font-size:15px;font-weight:700;" +
+                    "color:#0b0c0f;background:linear-gradient(135deg,#9fc2ff,#c9a6ff);box-shadow:0 4px 18px rgba(140,160,255,.35)";
+  b.addEventListener("click", () => makeCameo(b));
+  const hint = document.createElement("span");
+  hint.textContent = "Right video? Add your photo on the right, then";
+  hint.style.cssText = "font-size:13px;opacity:.7";
+  bar.append(hint, b);
+  panel.prepend(bar);
+}
+
+new MutationObserver(() => addMakeButton()).observe(document.body, { childList: true, subtree: true });

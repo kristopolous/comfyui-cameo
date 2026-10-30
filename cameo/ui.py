@@ -45,7 +45,7 @@ def convert(api, path):
     return path
 
 
-APP_INPUTS = [("CameoFetch", "suggestion"), ("CameoFetch", "url"), ("CameoCast", "make_cameo"), ("CameoPhoto", "source"), ("LoadImage", "image"),
+APP_INPUTS = [("CameoFetch", "suggestion"), ("CameoFetch", "url"), ("CameoPhoto", "source"), ("LoadImage", "image"),
               ("WebcamCapture", "image"), ("CameoCast", "action", {"height": 80}),
               ("CameoFetch", "quality"), ("CameoFetch", "start"), ("CameoFetch", "end"), ("CameoCast", "max_shots"), ("CameoCast", "takes")]
 APP_OUTPUTS = ["CameoFetch", "PreviewAny", "SaveVideo"]
