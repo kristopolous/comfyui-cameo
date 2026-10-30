@@ -41,7 +41,7 @@ definition:
     sourceUri: https://huggingface.co/Lightricks/LTX-2.5/resolve/main/vae/ltx-2.5-video-vae-bf16.safetensors
     type: vae
   customNodes:
-  - commit: 354b7a414693a68fefd608d188a54ffe4fc60dd8
+  - commit: a87a2d2f2b1a867c8bcd33143579802215e5ae1d
     name: comfyui-cameo
     repository: https://github.com/kristopolous/comfyui-cameo
   pipDependencies: 'deno==2.9.8
