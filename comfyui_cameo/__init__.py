@@ -16,6 +16,9 @@ from .cast import CameoCast
 from .media import CameoAssemble, CameoFetch, CameoPhoto, CameoReplaceFirstFrame
 
 
+WEB_DIRECTORY = "./web"
+
+
 class CameoBoxNoiseMask(io.ComfyNode):
     """Regenerate only a box of a video latent; everything else stays the original footage."""
 

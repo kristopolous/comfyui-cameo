@@ -143,7 +143,9 @@ class CameoPhoto(io.ComfyNode):
     def execute(cls, source, photo=None, webcam=None) -> io.NodeOutput:
         image = photo if source == "photo" else webcam
         if image is None:
-            raise ValueError(f"No {source} image: upload a photo or allow the webcam.")
+            raise ValueError("No webcam snapshot. The webcam only works over HTTPS or on localhost; "
+                             "switch 'photo of you from' to photo and upload a picture." if source == "webcam" else
+                             "No photo: upload a picture of yourself.")
         return io.NodeOutput(image[:1])
 
 
