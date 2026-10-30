@@ -35,6 +35,9 @@ def _ask(image, questions):
     return _d1().system_one(None, questions, media=[_pil(image)])["answers"]
 
 
+# Routed through Cast (not typed into the text encoders) so a preview-only run loads no models.
+VIDEO_NEGATIVE = "pc game, console game, video game, cartoon, childish, ugly"
+
 SHOT = {
     "framing": {"type": "choice", "instructions": "How is this shot framed?",
                 "criteria": {"wide": "Full bodies and plenty of the setting are visible",
@@ -178,6 +181,9 @@ class CameoCast(io.ComfyNode):
                 io.Int.Output(display_name="width"),
                 io.Int.Output(display_name="height"),
                 io.Float.Output(display_name="fps"),
+                io.String.Output(display_name="insert_negative"),
+                io.String.Output(display_name="video_negative"),
+                io.String.Output(display_name="find_people"),
             ],
         )
 
@@ -185,25 +191,30 @@ class CameoCast(io.ComfyNode):
     def execute(cls, video, shots, make_cameo, person, action, max_shots, max_frames, min_frames, takes,
                 seed, hint=None) -> io.NodeOutput:
         if not make_cameo:
-            return io.NodeOutput(*[ExecutionBlocker(None)] * 11)
+            return io.NodeOutput(*[ExecutionBlocker(None)] * 14)
         action = action.strip() or (json.loads(hint).get("action") if hint else "") or "dances along, goofy and over the top"
         comp = video.get_components()
         frames, fps = comp.images, float(comp.frame_rate)
         H, W = frames.shape[1:3]
         desc, pronoun = describe(person[0])
-        judged = []
+        judged, fallback = [], []
         for s, e in json.loads(shots):
             n = min(max_frames, e - s)
             n = n - (n - 1) % 8
             if n < min_frames:
                 continue
             a = _ask(frames[s], SHOT)
+            score = (a["room"]["noul"] * n, s, n, a)
             if cast_ok(a):
-                judged.append((a["room"]["noul"] * n, s, n, a))
-        judged.sort(reverse=True)
-        picked = sorted(judged[:max_shots], key=lambda j: j[1])
+                judged.append(score)
+            elif a["framing"]["choice"] != "closeup":
+                fallback.append(score)
+        # No shot clears the bar: take the roomiest non-close-ups rather than give up.
+        pool = judged or fallback
+        pool.sort(key=lambda j: j[0], reverse=True)
+        picked = sorted(pool[:max_shots], key=lambda j: j[1])
         if not picked:
-            raise ValueError("The decision model found no shot with room for one more person.")
+            raise ValueError("The decision model found no wide or medium shot in this video. Try another clip.")
         out = {k: [] for k in ("windows", "first", "insert", "video", "regions", "counts", "seeds")}
         plan = {"desc": desc, "shots": []}
         for i, (_, s, n, a) in enumerate(picked):
@@ -219,4 +230,5 @@ class CameoCast(io.ComfyNode):
                 plan["shots"].append({"shot": i, "take": take, "start": s, "frames": n, "box": box, "region": region,
                                       "framing": a["framing"]["choice"], "room": round(a["room"]["noul"], 3)})
         return io.NodeOutput(out["windows"], out["first"], out["insert"], out["video"], out["regions"],
-                             out["counts"], out["seeds"], json.dumps(plan), W, H, fps)
+                             out["counts"], out["seeds"], json.dumps(plan), W, H, fps,
+                             "", VIDEO_NEGATIVE, "person")

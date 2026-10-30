@@ -34,7 +34,7 @@ def fetch(url, out, start=None, end=None, height=HEIGHT, fps=FPS):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     raw = out / "raw.mp4"
-    cmd = ["yt-dlp", "-f", "worstvideo[height>=144]+worstaudio/worst[height>=144]/worst",
+    cmd = ["yt-dlp", "-f", "worstvideo[height>=144][protocol=https]+worstaudio[protocol=https]/worstvideo[height>=144]+worstaudio/worst",
            "--merge-output-format", "mp4", "--quiet", "--no-warnings", "-o", str(raw), "--force-overwrites"]
     if start or end:
         cmd += ["--download-sections", f"*{start or '0'}-{end or 'inf'}"]

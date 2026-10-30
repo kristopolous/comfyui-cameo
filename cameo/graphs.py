@@ -135,6 +135,7 @@ def cameo_app(url, photo, action="", start="", end="", max_shots=4, make_cameo=T
                  max_shots=max_shots, max_frames=max_frames, min_frames=17, takes=takes, seed=seed)
     windows, firsts, inserts, vprompts, regions, counts, seeds = (cast(i) for i in range(7))
     plan, W, H, FPS = cast(7), cast(8), cast(9), cast(10)
+    kneg_text, lneg_text, people_text = cast(11), cast(12), cast(13)
 
     # FLUX 3 Klein: you, inserted into each cast shot's first frame
     unet = g.add("UNETLoader", unet_name=KLEIN, weight_dtype="default")
@@ -143,7 +144,7 @@ def cameo_app(url, photo, action="", start="", end="", max_shots=4, make_cameo=T
     mu = math.log(16.0)
     kmodel = g.add("ModelSamplingFlux", model=unet(), max_shift=mu, base_shift=mu, width=W, height=H)
     kpos = g.add("CLIPTextEncode", clip=kclip(), text=inserts)
-    kneg = g.add("CLIPTextEncode", clip=kclip(), text="")
+    kneg = g.add("CLIPTextEncode", clip=kclip(), text=kneg_text)
     ref = g.add("ReferenceMultiLatent", positive=kpos(), negative=kneg(), vae=kvae(), resolution="resize",
                 **{"resolution.megapixels": 0.07, "images.image0": firsts, "images.image1": person(0)})
     klat = g.add("EmptyFlux2LatentImage", width=W, height=H, batch_size=1)
@@ -161,7 +162,7 @@ def cameo_app(url, photo, action="", start="", end="", max_shots=4, make_cameo=T
     av = g.add("LTXVConcatAVLatent", video_latent=masked(), audio_latent=audio())
     lclip = g.add("CLIPLoader", clip_name=LTX_TE, type="ltxv", device="default")
     lpos = g.add("CLIPTextEncode", clip=lclip(), text=vprompts)
-    lneg = g.add("CLIPTextEncode", clip=lclip(), text="pc game, console game, video game, cartoon, childish, ugly")
+    lneg = g.add("CLIPTextEncode", clip=lclip(), text=lneg_text)
     cond = g.add("LTXVConditioning", positive=lpos(), negative=lneg(), frame_rate=FPS)
     lmodel = g.add("UNETLoader", unet_name=LTX, weight_dtype="default")
     guider = g.add("CFGGuider", model=lmodel(), positive=cond(0), negative=cond(1), cfg=1.0)
@@ -173,7 +174,7 @@ def cameo_app(url, photo, action="", start="", end="", max_shots=4, make_cameo=T
 
     # SAM3: the new person's matte, and the original people who stay in front
     sam = g.add("CheckpointLoaderSimple", ckpt_name=SAM3)
-    who = g.add("CLIPTextEncode", clip=sam(1), text="person")
+    who = g.add("CLIPTextEncode", clip=sam(1), text=people_text)
     cameo = g.add("SAM3_Detect", model=sam(0), image=gen(), conditioning=who(), threshold=0.25,
                   refine_iterations=2, individual_masks=False)
     people = g.add("SAM3_Detect", model=sam(0), image=windows, conditioning=who(), threshold=0.4,

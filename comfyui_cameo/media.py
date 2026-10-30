@@ -95,18 +95,17 @@ class CameoFetch(io.ComfyNode):
             raise ValueError("Pick a suggestion, or type a video URL or search words.")
         work = tempfile.mkdtemp(prefix="cameo_", dir=folder_paths.get_temp_directory())
         raw = os.path.join(work, "raw.mp4")
-        cmd = [sys.executable, "-m", "yt_dlp", "-q", "--no-warnings", "-f", "worstvideo[height>=144]+worstaudio/worst[height>=144]/worst",
+        cmd = [sys.executable, "-m", "yt_dlp", "-q", "--no-warnings", "-f", "worstvideo[height>=144][protocol=https]+worstaudio[protocol=https]/worstvideo[height>=144]+worstaudio/worst",
                "--merge-output-format", "mp4", "--ffmpeg-location", _ffmpeg(), "-o", raw, "--force-overwrites",
                "--no-simulate", "--print", "%(title)s (%(duration_string)s)", "--print-to-file", "%(title)s",
                os.path.join(work, "title.txt")]
-        if start or end:
-            cmd += ["--download-sections", f"*{start or '0'}-{end or 'inf'}"]
         query = url.strip()
         if not query.lower().startswith(("http://", "https://")):
             query = f"ytsearch1:{query}"
         _run(cmd + [query])
         clip = os.path.join(work, "clip.mp4")
-        _run([_ffmpeg(), "-v", "error", "-y", "-i", raw, "-vf", f"fps={fps},scale=-2:{height}:flags=area,"
+        trim = (["-ss", start] if start else []) + (["-to", end] if end else [])
+        _run([_ffmpeg(), "-v", "error", "-y", *trim, "-i", raw, "-vf", f"fps={fps},scale=-2:{height}:flags=area,"
               f"crop=trunc(iw/32)*32:{height}", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p",
               "-c:a", "aac", clip])
         shots = _shots(clip, cut_threshold, 6)

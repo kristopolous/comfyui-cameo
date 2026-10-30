@@ -4,12 +4,13 @@ using comfy-cli's own edit ops so node layouts and widgets match the live catalo
     python -m cameo.ui workflows/cameo_insert_api.json workflows/cameo_insert.json
 """
 import json
+import os
 import subprocess
 import sys
 
 EMPTY = {"last_node_id": 0, "last_link_id": 0, "nodes": [], "links": [], "groups": [],
          "config": {}, "extra": {}, "version": 0.4}
-CATALOG = ["--where", "local", "--host", "127.0.0.1", "--port", "8188"]
+CATALOG = ["--where", "local", "--host", os.environ.get("COMFY_HOST", "127.0.0.1"), "--port", "8188"]
 
 
 def op(*args):
