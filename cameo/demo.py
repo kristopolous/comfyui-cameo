@@ -71,3 +71,16 @@ if __name__ == "__main__":
     out = Path(sys.argv[1] if len(sys.argv) > 1 else "work/demo")
     out.mkdir(parents=True, exist_ok=True)
     print(json.dumps({"out": str(out)}))
+
+
+def solo(out, cameo, span, fps, caption):
+    """The cameo version alone, full frame, with its audio."""
+    a, b = span
+    ff("-i", str(cameo), "-filter_complex",
+       f"[0:v]trim=start_frame={a}:end_frame={b},setpts=PTS-STARTPTS,scale={W}:{H}:force_original_aspect_ratio=decrease:"
+       f"flags=lanczos,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=0x15161a,"
+       f"drawtext=fontfile={FONT}:text='{esc(caption)}':fontcolor=white:fontsize=26:box=1:boxcolor=0x000000aa:"
+       f"boxborderw=10:x=(w-tw)/2:y=24,fps={FPS}[v];"
+       f"[0:a]atrim=start={a / fps}:end={b / fps},asetpts=PTS-STARTPTS[au]",
+       "-map", "[v]", "-map", "[au]", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "44100",
+       "-ac", "2", str(out))
