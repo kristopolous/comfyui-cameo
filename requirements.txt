@@ -1,5 +1,5 @@
-yt-dlp
-deno
-scenedetect>=0.7
-opencv-python-headless
-transformers>=5.19
+deno==2.9.8
+opencv-python-headless==5.0.0.93
+scenedetect==0.7.2
+transformers==5.22.0
+yt-dlp==2026.10.26

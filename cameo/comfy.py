@@ -7,6 +7,7 @@ import json
 import os
 import time
 import urllib.parse
+import urllib.error
 import urllib.request
 import uuid
 from pathlib import Path
@@ -15,10 +16,16 @@ URL = os.environ.get("COMFY_URL", "http://127.0.0.1:8188")
 CLIENT_ID = str(uuid.uuid4())
 
 
-def _req(path, data=None, headers=None):
-    req = urllib.request.Request(URL + path, data=data, headers=headers or {})
-    with urllib.request.urlopen(req, timeout=600) as r:
-        return r.read()
+def _req(path, data=None, headers=None, tries=5):
+    for i in range(tries):
+        try:
+            req = urllib.request.Request(URL + path, data=data, headers=headers or {})
+            with urllib.request.urlopen(req, timeout=600) as r:
+                return r.read()
+        except (ConnectionError, urllib.error.URLError):
+            if data is not None or i == tries - 1:
+                raise
+            time.sleep(2 * (i + 1))
 
 
 def upload(path, name=None):
