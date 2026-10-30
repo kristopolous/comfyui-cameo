@@ -34,17 +34,17 @@ def card(out, title, lines=(), seconds=4.0):
 def still(out, image, caption, seconds=5.0):
     ff("-loop", "1", "-i", str(image), "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", str(seconds),
        "-vf", f"scale={W}:{H - 80}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:0:color=0x15161a,"
-              f"drawtext=fontfile={FONT}:text='{esc(caption)}':fontcolor=white:fontsize=30:x=(w-tw)/2:y=h-58",
+              f"drawtext=fontfile={FONT}:text='{esc(caption)}':fontcolor=white:fontsize=24:x=(w-tw)/2:y=h-54",
        "-r", str(FPS), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(out))
 
 
 def before_after(out, orig, cameo, spans, fps, caption):
-    """Original on the left, cameo on the right, for each [start, end) frame span; audio from the cameo file."""
+    """Original on the left, cameo on the right, for each [start, end) frame span; audio from the original."""
     parts = []
     for i, (a, b) in enumerate(spans):
         parts.append(f"[0:v]trim=start_frame={a}:end_frame={b},setpts=PTS-STARTPTS[o{i}];"
                      f"[1:v]trim=start_frame={a}:end_frame={b},setpts=PTS-STARTPTS[c{i}];"
-                     f"[1:a]atrim=start={a / fps}:end={b / fps},asetpts=PTS-STARTPTS[a{i}];"
+                     f"[0:a]atrim=start={a / fps}:end={b / fps},asetpts=PTS-STARTPTS[a{i}];"
                      f"[o{i}][c{i}]hstack[v{i}]")
     cat = "".join(f"[v{i}][a{i}]" for i in range(len(spans)))
     label = (f"scale={W}:-2:flags=lanczos,pad={W}:{H}:0:(oh-ih)/2:color=0x15161a,"
