@@ -112,7 +112,11 @@ class CameoFetch(io.ComfyNode):
         title_file = os.path.join(work, "title.txt")
         title = open(title_file).read().strip() if os.path.exists(title_file) else url
         title = f"{title} — {len(shots)} shots"
-        preview = ui.PreviewVideo([ui.SavedResult("clip.mp4", os.path.basename(work), io.FolderType.temp)])
+        # App Mode captions a video with its file name, so name the preview after the title
+        safe = "".join(c for c in title if c.isalnum() or c in " -—_.,()&'").strip()[:120] or "preview"
+        named = os.path.join(work, f"{safe}.mp4")
+        os.link(clip, named)
+        preview = ui.PreviewVideo([ui.SavedResult(os.path.basename(named), os.path.basename(work), io.FolderType.temp)])
         return io.NodeOutput(InputImpl.VideoFromFile(clip), json.dumps(shots), title, json.dumps({"action": action}),
                              ui=preview)
 
