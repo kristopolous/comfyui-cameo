@@ -1,0 +1,13 @@
+[project]
+name = "comfyui-cameo"
+description = "Put yourself in any video: a decision model casts the shots, FLUX 3 Klein adds you, LTX-2.5 carries you through, SAM3 keeps everyone else in front."
+version = "0.1.0"
+license = { file = "LICENSE" }
+dependencies = ["yt-dlp", "deno", "scenedetect>=0.7", "opencv-python-headless", "transformers>=5.19"]
+
+[project.urls]
+Repository = "https://github.com/kristopolous/comfyui-cameo"
+
+[tool.comfy]
+PublisherId = "kristopolous"
+DisplayName = "Cameo"

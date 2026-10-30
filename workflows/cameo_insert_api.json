@@ -1,0 +1,153 @@
+{
+ "1": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "flux3-image-klein-int8-convrot.safetensors",
+   "weight_dtype": "default"
+  }
+ },
+ "2": {
+  "class_type": "CLIPLoader",
+  "inputs": {
+   "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+   "type": "flux3",
+   "device": "default"
+  }
+ },
+ "3": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "flux2-vae.safetensors"
+  }
+ },
+ "4": {
+  "class_type": "ModelSamplingFlux",
+  "inputs": {
+   "model": [
+    "1",
+    0
+   ],
+   "max_shift": 2.772588722239781,
+   "base_shift": 2.772588722239781,
+   "width": 352,
+   "height": 192
+  }
+ },
+ "5": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "2",
+    0
+   ],
+   "text": "Add the person <person_1> from <ref_image_1> to the scene, standing on the sunlit ballroom floor to the right of the tables, matching the scene's lighting, color grade, film grain and perspective. Everything else stays identical to the source. [{\"id\": \"person_1\", \"from\": \"ref_image_1\", \"src_bbox\": [20, 380, 980, 700], \"tgt_bbox\": [430, 640, 900, 745], \"desc\": \"A man in his thirties with light skin, short dark hair and a short dark beard, wearing a navy hoodie, blue jeans and white sneakers, standing upright facing the camera with his arms at his sides.\"}]"
+  }
+ },
+ "6": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "2",
+    0
+   ],
+   "text": ""
+  }
+ },
+ "7": {
+  "class_type": "EmptyFlux2LatentImage",
+  "inputs": {
+   "width": 352,
+   "height": 192,
+   "batch_size": 1
+  }
+ },
+ "8": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "shot0000.png"
+  }
+ },
+ "9": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "standin.png"
+  }
+ },
+ "10": {
+  "class_type": "ReferenceMultiLatent",
+  "inputs": {
+   "positive": [
+    "5",
+    0
+   ],
+   "negative": [
+    "6",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ],
+   "resolution": "resize",
+   "resolution.megapixels": 0.07,
+   "images.image0": [
+    "8",
+    0
+   ],
+   "images.image1": [
+    "9",
+    0
+   ]
+  }
+ },
+ "11": {
+  "class_type": "KSampler",
+  "inputs": {
+   "model": [
+    "4",
+    0
+   ],
+   "seed": 1,
+   "steps": 16,
+   "cfg": 1.0,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "positive": [
+    "10",
+    0
+   ],
+   "negative": [
+    "10",
+    1
+   ],
+   "latent_image": [
+    "7",
+    0
+   ],
+   "denoise": 1.0
+  }
+ },
+ "12": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "11",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ]
+  }
+ },
+ "13": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "images": [
+    "12",
+    0
+   ],
+   "filename_prefix": "cameo/insert"
+  }
+ }
+}

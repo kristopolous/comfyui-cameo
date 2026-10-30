@@ -1,0 +1,500 @@
+{
+ "1": {
+  "class_type": "CameoFetch",
+  "inputs": {
+   "url": "https://www.youtube.com/watch?v=WGdc92EOdm0",
+   "start": "",
+   "end": "",
+   "height": 192,
+   "fps": 12,
+   "cut_threshold": 15.0
+  }
+ },
+ "2": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "standin.png"
+  }
+ },
+ "3": {
+  "class_type": "CameoCast",
+  "inputs": {
+   "video": [
+    "1",
+    0
+   ],
+   "shots": [
+    "1",
+    1
+   ],
+   "person": [
+    "2",
+    0
+   ],
+   "action": "breaks into a wild, goofy, over-the-top dance to out-dance the other kid: flailing arms, high kicks and spins",
+   "max_shots": 6,
+   "max_frames": 49,
+   "min_frames": 17
+  }
+ },
+ "4": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "flux3-image-klein-int8-convrot.safetensors",
+   "weight_dtype": "default"
+  }
+ },
+ "5": {
+  "class_type": "CLIPLoader",
+  "inputs": {
+   "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+   "type": "flux3",
+   "device": "default"
+  }
+ },
+ "6": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "flux2-vae.safetensors"
+  }
+ },
+ "7": {
+  "class_type": "ModelSamplingFlux",
+  "inputs": {
+   "model": [
+    "4",
+    0
+   ],
+   "max_shift": 2.772588722239781,
+   "base_shift": 2.772588722239781,
+   "width": [
+    "3",
+    7
+   ],
+   "height": [
+    "3",
+    8
+   ]
+  }
+ },
+ "8": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "5",
+    0
+   ],
+   "text": [
+    "3",
+    2
+   ]
+  }
+ },
+ "9": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "5",
+    0
+   ],
+   "text": ""
+  }
+ },
+ "10": {
+  "class_type": "ReferenceMultiLatent",
+  "inputs": {
+   "positive": [
+    "8",
+    0
+   ],
+   "negative": [
+    "9",
+    0
+   ],
+   "vae": [
+    "6",
+    0
+   ],
+   "resolution": "resize",
+   "resolution.megapixels": 0.07,
+   "images.image0": [
+    "3",
+    1
+   ],
+   "images.image1": [
+    "2",
+    0
+   ]
+  }
+ },
+ "11": {
+  "class_type": "EmptyFlux2LatentImage",
+  "inputs": {
+   "width": [
+    "3",
+    7
+   ],
+   "height": [
+    "3",
+    8
+   ],
+   "batch_size": 1
+  }
+ },
+ "12": {
+  "class_type": "KSampler",
+  "inputs": {
+   "model": [
+    "7",
+    0
+   ],
+   "seed": 1,
+   "steps": 16,
+   "cfg": 1.0,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "positive": [
+    "10",
+    0
+   ],
+   "negative": [
+    "10",
+    1
+   ],
+   "latent_image": [
+    "11",
+    0
+   ],
+   "denoise": 1.0
+  }
+ },
+ "13": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "12",
+    0
+   ],
+   "vae": [
+    "6",
+    0
+   ]
+  }
+ },
+ "14": {
+  "class_type": "CameoReplaceFirstFrame",
+  "inputs": {
+   "frames": [
+    "3",
+    0
+   ],
+   "first": [
+    "13",
+    0
+   ]
+  }
+ },
+ "15": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "ltx-2.5-video-vae-bf16.safetensors"
+  }
+ },
+ "16": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "ltx-2.5-audio-vae-bf16.safetensors"
+  }
+ },
+ "17": {
+  "class_type": "VAEEncode",
+  "inputs": {
+   "pixels": [
+    "14",
+    0
+   ],
+   "vae": [
+    "15",
+    0
+   ]
+  }
+ },
+ "18": {
+  "class_type": "CameoBoxNoiseMask",
+  "inputs": {
+   "latent": [
+    "17",
+    0
+   ],
+   "boxes": [
+    "3",
+    4
+   ],
+   "dilate": 1,
+   "keep_frames": 1
+  }
+ },
+ "19": {
+  "class_type": "LTXVEmptyLatentAudio",
+  "inputs": {
+   "frames_number": [
+    "3",
+    5
+   ],
+   "frame_rate": [
+    "3",
+    9
+   ],
+   "batch_size": 1,
+   "audio_vae": [
+    "16",
+    0
+   ]
+  }
+ },
+ "20": {
+  "class_type": "LTXVConcatAVLatent",
+  "inputs": {
+   "video_latent": [
+    "18",
+    0
+   ],
+   "audio_latent": [
+    "19",
+    0
+   ]
+  }
+ },
+ "21": {
+  "class_type": "CLIPLoader",
+  "inputs": {
+   "clip_name": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+   "type": "ltxv",
+   "device": "default"
+  }
+ },
+ "22": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "21",
+    0
+   ],
+   "text": [
+    "3",
+    3
+   ]
+  }
+ },
+ "23": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "21",
+    0
+   ],
+   "text": "pc game, console game, video game, cartoon, childish, ugly"
+  }
+ },
+ "24": {
+  "class_type": "LTXVConditioning",
+  "inputs": {
+   "positive": [
+    "22",
+    0
+   ],
+   "negative": [
+    "23",
+    0
+   ],
+   "frame_rate": [
+    "3",
+    9
+   ]
+  }
+ },
+ "25": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+   "weight_dtype": "default"
+  }
+ },
+ "26": {
+  "class_type": "CFGGuider",
+  "inputs": {
+   "model": [
+    "25",
+    0
+   ],
+   "positive": [
+    "24",
+    0
+   ],
+   "negative": [
+    "24",
+    1
+   ],
+   "cfg": 1.0
+  }
+ },
+ "27": {
+  "class_type": "RandomNoise",
+  "inputs": {
+   "noise_seed": 1
+  }
+ },
+ "28": {
+  "class_type": "KSamplerSelect",
+  "inputs": {
+   "sampler_name": "euler_ancestral"
+  }
+ },
+ "29": {
+  "class_type": "ManualSigmas",
+  "inputs": {
+   "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0"
+  }
+ },
+ "30": {
+  "class_type": "SamplerCustomAdvanced",
+  "inputs": {
+   "noise": [
+    "27",
+    0
+   ],
+   "guider": [
+    "26",
+    0
+   ],
+   "sampler": [
+    "28",
+    0
+   ],
+   "sigmas": [
+    "29",
+    0
+   ],
+   "latent_image": [
+    "20",
+    0
+   ]
+  }
+ },
+ "31": {
+  "class_type": "LTXVSeparateAVLatent",
+  "inputs": {
+   "av_latent": [
+    "30",
+    0
+   ]
+  }
+ },
+ "32": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "31",
+    0
+   ],
+   "vae": [
+    "15",
+    0
+   ]
+  }
+ },
+ "33": {
+  "class_type": "CheckpointLoaderSimple",
+  "inputs": {
+   "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+  }
+ },
+ "34": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "33",
+    1
+   ],
+   "text": "person"
+  }
+ },
+ "35": {
+  "class_type": "SAM3_Detect",
+  "inputs": {
+   "model": [
+    "33",
+    0
+   ],
+   "image": [
+    "32",
+    0
+   ],
+   "conditioning": [
+    "34",
+    0
+   ],
+   "threshold": 0.25,
+   "refine_iterations": 2,
+   "individual_masks": false
+  }
+ },
+ "36": {
+  "class_type": "SAM3_Detect",
+  "inputs": {
+   "model": [
+    "33",
+    0
+   ],
+   "image": [
+    "3",
+    0
+   ],
+   "conditioning": [
+    "34",
+    0
+   ],
+   "threshold": 0.4,
+   "refine_iterations": 2,
+   "individual_masks": false
+  }
+ },
+ "37": {
+  "class_type": "CameoAssemble",
+  "inputs": {
+   "video": [
+    "1",
+    0
+   ],
+   "plan": [
+    "3",
+    6
+   ],
+   "generated": [
+    "32",
+    0
+   ],
+   "cameo_masks": [
+    "35",
+    0
+   ],
+   "people_masks": [
+    "36",
+    0
+   ],
+   "only_cast_shots": false
+  }
+ },
+ "38": {
+  "class_type": "SaveVideo",
+  "inputs": {
+   "video": [
+    "37",
+    0
+   ],
+   "filename_prefix": "cameo/app_full",
+   "format": "mp4",
+   "format.codec": "h264"
+  }
+ }
+}

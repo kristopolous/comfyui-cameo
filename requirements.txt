@@ -1,0 +1,5 @@
+yt-dlp
+deno
+scenedetect>=0.7
+opencv-python-headless
+transformers>=5.19

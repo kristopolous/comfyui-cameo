@@ -1,0 +1,633 @@
+{
+  "last_node_id": 4500462444279128,
+  "last_link_id": 0,
+  "nodes": [
+    {
+      "id": 3063200322464307,
+      "type": "UNETLoader",
+      "pos": [
+        40.0,
+        60.0
+      ],
+      "size": [
+        270.0,
+        118.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            140145842842845
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "flux3-image-klein-int8-convrot.safetensors",
+        "default"
+      ]
+    },
+    {
+      "id": 736461341628750,
+      "type": "CLIPLoader",
+      "pos": [
+        40.0,
+        280.0
+      ],
+      "size": [
+        270.0,
+        142.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            1176446550447188,
+            720393884035067
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "qwen3vl_4b_int8_convrot.safetensors",
+        "flux3",
+        "default"
+      ]
+    },
+    {
+      "id": 1352279159267722,
+      "type": "VAELoader",
+      "pos": [
+        40.0,
+        500.0
+      ],
+      "size": [
+        270.0,
+        94.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            3636892455225276,
+            485753513923326
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "flux2-vae.safetensors"
+      ]
+    },
+    {
+      "id": 3739830862021716,
+      "type": "ModelSamplingFlux",
+      "pos": [
+        400.0,
+        60.0
+      ],
+      "size": [
+        270.0,
+        166.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 140145842842845
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            1439427602645107
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        2.772588722239781,
+        2.772588722239781,
+        352,
+        192
+      ]
+    },
+    {
+      "id": 2315253378289674,
+      "type": "CLIPTextEncode",
+      "pos": [
+        400.0,
+        280.0
+      ],
+      "size": [
+        400.0,
+        236.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 1176446550447188
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            2556423043022269
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "Add the person <person_1> from <ref_image_1> to the scene, standing on the sunlit ballroom floor to the right of the tables, matching the scene's lighting, color grade, film grain and perspective. Everything else stays identical to the source. [{\"id\": \"person_1\", \"from\": \"ref_image_1\", \"src_bbox\": [20, 380, 980, 700], \"tgt_bbox\": [430, 640, 900, 745], \"desc\": \"A man in his thirties with light skin, short dark hair and a short dark beard, wearing a navy hoodie, blue jeans and white sneakers, standing upright facing the camera with his arms at his sides.\"}]"
+      ]
+    },
+    {
+      "id": 56906696039062,
+      "type": "CLIPTextEncode",
+      "pos": [
+        400.0,
+        500.0
+      ],
+      "size": [
+        400.0,
+        236.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 720393884035067
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            3576733039316060
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 3696222887966781,
+      "type": "EmptyFlux2LatentImage",
+      "pos": [
+        40.0,
+        720.0
+      ],
+      "size": [
+        270.0,
+        142.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            3436464270261403
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        352,
+        192,
+        1
+      ]
+    },
+    {
+      "id": 4019167235616781,
+      "type": "LoadImage",
+      "pos": [
+        40.0,
+        940.0
+      ],
+      "size": [
+        270.0,
+        328.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            256712481168712
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "shot0000.png"
+      ]
+    },
+    {
+      "id": 2005304006133961,
+      "type": "LoadImage",
+      "pos": [
+        40.0,
+        1160.0
+      ],
+      "size": [
+        270.0,
+        328.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4395244768611081
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "standin.png"
+      ]
+    },
+    {
+      "id": 4500462444279128,
+      "type": "ReferenceMultiLatent",
+      "pos": [
+        760.0,
+        60.0
+      ],
+      "size": [
+        270.0,
+        154.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 2556423043022269
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 3576733039316060
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 3636892455225276
+        },
+        {
+          "name": "images",
+          "type": "COMFY_AUTOGROW_V3",
+          "link": null
+        },
+        {
+          "name": "images.image0",
+          "type": "IMAGE",
+          "link": 256712481168712,
+          "grow_id": 256712481168712
+        },
+        {
+          "name": "images.image1",
+          "type": "IMAGE",
+          "link": 4395244768611081,
+          "grow_id": 4395244768611081
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            3102394803175678
+          ]
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            2841021504206196
+          ]
+        },
+        {
+          "name": "empty_latent",
+          "type": "LATENT",
+          "links": []
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "resize",
+        0.07
+      ]
+    },
+    {
+      "id": 2638732573809911,
+      "type": "KSampler",
+      "pos": [
+        1120.0,
+        60.0
+      ],
+      "size": [
+        288.79999999999995,
+        298.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 1439427602645107
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 3102394803175678
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 2841021504206196
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 3436464270261403
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            867691833888239
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        1,
+        "fixed",
+        16,
+        1.0,
+        "euler",
+        "simple",
+        1.0
+      ]
+    },
+    {
+      "id": 208506094024331,
+      "type": "VAEDecode",
+      "pos": [
+        1480.0,
+        60.0
+      ],
+      "size": [
+        145.8,
+        82.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 867691833888239
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 485753513923326
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            334192520684999
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": []
+    },
+    {
+      "id": 837347411707954,
+      "type": "SaveImage",
+      "pos": [
+        1840.0,
+        60.0
+      ],
+      "size": [
+        270.0,
+        94.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 334192520684999
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "cameo/insert"
+      ]
+    }
+  ],
+  "links": [
+    [
+      140145842842845,
+      3063200322464307,
+      0,
+      3739830862021716,
+      0,
+      "MODEL"
+    ],
+    [
+      1176446550447188,
+      736461341628750,
+      0,
+      2315253378289674,
+      0,
+      "CLIP"
+    ],
+    [
+      720393884035067,
+      736461341628750,
+      0,
+      56906696039062,
+      0,
+      "CLIP"
+    ],
+    [
+      2556423043022269,
+      2315253378289674,
+      0,
+      4500462444279128,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      3576733039316060,
+      56906696039062,
+      0,
+      4500462444279128,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      3636892455225276,
+      1352279159267722,
+      0,
+      4500462444279128,
+      2,
+      "VAE"
+    ],
+    [
+      256712481168712,
+      4019167235616781,
+      0,
+      4500462444279128,
+      4,
+      "IMAGE"
+    ],
+    [
+      4395244768611081,
+      2005304006133961,
+      0,
+      4500462444279128,
+      5,
+      "IMAGE"
+    ],
+    [
+      1439427602645107,
+      3739830862021716,
+      0,
+      2638732573809911,
+      0,
+      "MODEL"
+    ],
+    [
+      3102394803175678,
+      4500462444279128,
+      0,
+      2638732573809911,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      2841021504206196,
+      4500462444279128,
+      1,
+      2638732573809911,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      3436464270261403,
+      3696222887966781,
+      0,
+      2638732573809911,
+      3,
+      "LATENT"
+    ],
+    [
+      867691833888239,
+      2638732573809911,
+      0,
+      208506094024331,
+      0,
+      "LATENT"
+    ],
+    [
+      485753513923326,
+      1352279159267722,
+      0,
+      208506094024331,
+      1,
+      "VAE"
+    ],
+    [
+      334192520684999,
+      208506094024331,
+      0,
+      837347411707954,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

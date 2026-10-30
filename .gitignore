@@ -1,0 +1,10 @@
+.env
+NOTES.md
+work/
+.venv/
+ComfyUI/
+workflows/ref/
+*.mp4
+*.mkv
+*.webm
+__pycache__/
