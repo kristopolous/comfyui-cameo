@@ -3,7 +3,7 @@ name = "comfyui-cameo"
 description = "Put yourself in any video: a decision model casts the shots, FLUX 3 Klein adds you, LTX-2.5 carries you through, SAM3 keeps everyone else in front."
 version = "0.1.0"
 license = { file = "LICENSE" }
-dependencies = ["deno==2.9.8", "opencv-python-headless==5.0.0.93", "scenedetect==0.7.2", "transformers==5.22.0", "yt-dlp==2026.10.26"]
+dependencies = ["deno==2.9.8", "imageio-ffmpeg==0.7.0", "opencv-python-headless==5.0.0.93", "scenedetect==0.7.2", "transformers==5.22.0", "yt-dlp==2026.10.26"]
 
 [project.urls]
 Repository = "https://github.com/kristopolous/comfyui-cameo"

@@ -17,6 +17,15 @@ from .cast import PLAN, rate_take
 SHOTS = io.Custom("CAMEO_SHOTS")
 
 
+def _ffmpeg():
+    """System ffmpeg if there is one; otherwise the static build imageio-ffmpeg ships (Comfy API images have none)."""
+    import shutil
+    if shutil.which("ffmpeg"):
+        return shutil.which("ffmpeg")
+    import imageio_ffmpeg
+    return imageio_ffmpeg.get_ffmpeg_exe()
+
+
 def _run(cmd):
     env = dict(os.environ, PATH=os.path.dirname(sys.executable) + os.pathsep + os.environ.get("PATH", ""))
     r = subprocess.run(cmd, capture_output=True, text=True, env=env)
@@ -55,12 +64,12 @@ class CameoFetch(io.ComfyNode):
         work = tempfile.mkdtemp(prefix="cameo_", dir=folder_paths.get_temp_directory())
         raw = os.path.join(work, "raw.mp4")
         cmd = [sys.executable, "-m", "yt_dlp", "-q", "--no-warnings", "-f", "worstvideo[height>=144]+worstaudio/worst[height>=144]/worst",
-               "--merge-output-format", "mp4", "-o", raw, "--force-overwrites"]
+               "--merge-output-format", "mp4", "--ffmpeg-location", _ffmpeg(), "-o", raw, "--force-overwrites"]
         if start or end:
             cmd += ["--download-sections", f"*{start or '0'}-{end or 'inf'}"]
         _run(cmd + [url])
         clip = os.path.join(work, "clip.mp4")
-        _run(["ffmpeg", "-v", "error", "-y", "-i", raw, "-vf", f"fps={fps},scale=-2:{height}:flags=area,"
+        _run([_ffmpeg(), "-v", "error", "-y", "-i", raw, "-vf", f"fps={fps},scale=-2:{height}:flags=area,"
               f"crop=trunc(iw/32)*32:{height}", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p",
               "-c:a", "aac", clip])
         shots = _shots(clip, cut_threshold, 6)
