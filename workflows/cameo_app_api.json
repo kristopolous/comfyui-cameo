@@ -35,7 +35,7 @@
    "max_shots": 6,
    "max_frames": 49,
    "min_frames": 17,
-   "takes": 2,
+   "takes": 3,
    "seed": 1
   }
  },

@@ -12,7 +12,9 @@ import torch.nn.functional as F
 import folder_paths
 from comfy_api.latest import InputImpl, Types, io
 
-from .cast import rate_take
+from .cast import PLAN, rate_take
+
+SHOTS = io.Custom("CAMEO_SHOTS")
 
 
 def _run(cmd):
@@ -45,7 +47,7 @@ class CameoFetch(io.ComfyNode):
                 io.Int.Input("fps", default=12, min=6, max=30),
                 io.Float.Input("cut_threshold", default=15.0, min=1.0, max=100.0, tooltip="Shot-cut sensitivity."),
             ],
-            outputs=[io.Video.Output(display_name="video"), io.String.Output(display_name="shots")],
+            outputs=[io.Video.Output(display_name="video"), SHOTS.Output(display_name="shots")],
         )
 
     @classmethod
@@ -131,7 +133,7 @@ class CameoAssemble(io.ComfyNode):
             is_input_list=True,
             inputs=[
                 io.Video.Input("video"),
-                io.String.Input("plan", force_input=True),
+                PLAN.Input("plan"),
                 io.Image.Input("generated", tooltip="Per cast shot: the video model's frames."),
                 io.Mask.Input("cameo_masks", tooltip="Per cast shot: SAM3 'person' masks on the generated frames."),
                 io.Mask.Input("people_masks", tooltip="Per cast shot: SAM3 'person' masks on the original frames."),

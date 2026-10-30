@@ -10,6 +10,8 @@ import comfy.model_management
 from comfy_api.latest import io
 
 D1 = "LiquidAI/d1-2B"
+SHOTS = io.Custom("CAMEO_SHOTS")
+PLAN = io.Custom("CAMEO_PLAN")
 _model = None
 
 
@@ -147,7 +149,7 @@ class CameoCast(io.ComfyNode):
                         "Outputs are lists, so everything downstream runs once per cast shot.",
             inputs=[
                 io.Video.Input("video"),
-                io.String.Input("shots", force_input=True),
+                SHOTS.Input("shots"),
                 io.Image.Input("person", tooltip="A photo of you."),
                 io.String.Input("action", default="dances along, goofy and over the top", multiline=True,
                                 tooltip="What you do in every shot."),
@@ -166,7 +168,7 @@ class CameoCast(io.ComfyNode):
                 io.String.Output(display_name="regions", **L),
                 io.Int.Output(display_name="frame_counts", **L),
                 io.Int.Output(display_name="seeds", **L),
-                io.String.Output(display_name="plan"),
+                PLAN.Output(display_name="plan"),
                 io.Int.Output(display_name="width"),
                 io.Int.Output(display_name="height"),
                 io.Float.Output(display_name="fps"),
