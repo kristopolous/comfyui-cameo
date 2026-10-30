@@ -118,16 +118,16 @@ def sam3_mask(video, text="person", threshold=0.4, prefix="cameo/sam3"):
 
 
 def cameo_app(url, photo, action="dances along, goofy and over the top", start="", end="", max_shots=4,
-              max_frames=49, height=192, fps=12, seed=1, only_cast_shots=False, prefix="cameo/app", debug=False):
+              max_frames=49, height=192, fps=12, seed=1, only_cast_shots=False, prefix="cameo/app", debug=False, takes=2):
     """The whole app as ONE ComfyUI graph: inputs are a video URL, a photo and an action; output is a video.
     CameoCast outputs lists, so the Klein / LTX / SAM3 sections run once per cast shot (list execution)."""
     g = Graph()
     fetch = g.add("CameoFetch", url=url, start=start, end=end, height=height, fps=fps, cut_threshold=15.0)
     person = g.add("LoadImage", image=photo)
     cast = g.add("CameoCast", video=fetch(0), shots=fetch(1), person=person(0), action=action,
-                 max_shots=max_shots, max_frames=max_frames, min_frames=17)
-    windows, firsts, inserts, vprompts, regions, counts = (cast(i) for i in range(6))
-    plan, W, H, FPS = cast(6), cast(7), cast(8), cast(9)
+                 max_shots=max_shots, max_frames=max_frames, min_frames=17, takes=takes, seed=seed)
+    windows, firsts, inserts, vprompts, regions, counts, seeds = (cast(i) for i in range(7))
+    plan, W, H, FPS = cast(7), cast(8), cast(9), cast(10)
 
     # FLUX 3 Klein: you, inserted into each cast shot's first frame
     unet = g.add("UNETLoader", unet_name=KLEIN, weight_dtype="default")
@@ -158,7 +158,7 @@ def cameo_app(url, photo, action="dances along, goofy and over the top", start="
     cond = g.add("LTXVConditioning", positive=lpos(), negative=lneg(), frame_rate=FPS)
     lmodel = g.add("UNETLoader", unet_name=LTX, weight_dtype="default")
     guider = g.add("CFGGuider", model=lmodel(), positive=cond(0), negative=cond(1), cfg=1.0)
-    out = g.add("SamplerCustomAdvanced", noise=g.add("RandomNoise", noise_seed=seed)(), guider=guider(),
+    out = g.add("SamplerCustomAdvanced", noise=g.add("RandomNoise", noise_seed=seeds)(), guider=guider(),
                 sampler=g.add("KSamplerSelect", sampler_name="euler_ancestral")(),
                 sigmas=g.add("ManualSigmas", sigmas=LTX_SIGMAS)(), latent_image=av())
     sep = g.add("LTXVSeparateAVLatent", av_latent=out(0))
@@ -177,6 +177,7 @@ def cameo_app(url, photo, action="dances along, goofy and over the top", start="
         g.add("SaveImage", images=g.add("MaskToImage", mask=cameo(0))(), filename_prefix=f"{prefix}_dbg_cameo")
         g.add("SaveImage", images=g.add("MaskToImage", mask=people(0))(), filename_prefix=f"{prefix}_dbg_people")
     final = g.add("CameoAssemble", video=fetch(0), plan=plan, generated=gen(), cameo_masks=cameo(0),
-                  people_masks=people(0), only_cast_shots=only_cast_shots)
-    g.add("SaveVideo", video=final(), filename_prefix=prefix, format="mp4", **{"format.codec": "h264"})
+                  people_masks=people(0), min_score=0.3, only_cast_shots=only_cast_shots)
+    g.add("SaveVideo", video=final(0), filename_prefix=prefix, format="mp4", **{"format.codec": "h264"})
+    g.add("PreviewAny", source=final(1))
     return g

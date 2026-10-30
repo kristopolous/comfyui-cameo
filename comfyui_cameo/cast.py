@@ -114,6 +114,18 @@ def cast_ok(a, min_room=0.35, max_people=4):
             and a["people"]["number"] <= max_people)
 
 
+def rate_take(frames, desc):
+    """Decision-model QC of one composited take: is the cameo there in every sampled frame, and is nobody distorted?"""
+    qs = {"present": {"type": "noul", "instructions": f"Is this person clearly visible in the frame: {desc}"},
+          "natural": {"type": "noul", "instructions": "Do all the people in the frame look like normal, undistorted, "
+                                                      "complete human beings?"}}
+    picks = [frames[int(i)] for i in torch.linspace(0, len(frames) - 1, 4)]
+    answers = [_ask(f, qs) for f in picks]
+    present = min(a["present"]["noul"] for a in answers)
+    natural = sum(a["natural"]["noul"] for a in answers) / len(answers)
+    return present * natural, {"present": round(present, 3), "natural": round(natural, 3)}
+
+
 def insert_record(tgt_bbox, desc, where):
     para = (f"Add the person <person_1> from <ref_image_1> to the scene, {where}, matching the scene's lighting, "
             f"color grade, film grain and perspective. Everything else stays identical to the source.")
@@ -142,6 +154,9 @@ class CameoCast(io.ComfyNode):
                 io.Int.Input("max_shots", default=4, min=1, max=500),
                 io.Int.Input("max_frames", default=49, min=9, max=257, step=8, tooltip="Frames per shot (8n+1)."),
                 io.Int.Input("min_frames", default=17, min=9, max=257, step=8),
+                io.Int.Input("takes", default=2, min=1, max=8,
+                             tooltip="Video-model takes per shot; Cameo Assemble keeps the one the decision model rates best."),
+                io.Int.Input("seed", default=1, min=0, max=2**31),
             ],
             outputs=[
                 io.Image.Output(display_name="windows", **L),
@@ -150,6 +165,7 @@ class CameoCast(io.ComfyNode):
                 io.String.Output(display_name="video_prompts", **L),
                 io.String.Output(display_name="regions", **L),
                 io.Int.Output(display_name="frame_counts", **L),
+                io.Int.Output(display_name="seeds", **L),
                 io.String.Output(display_name="plan"),
                 io.Int.Output(display_name="width"),
                 io.Int.Output(display_name="height"),
@@ -158,7 +174,7 @@ class CameoCast(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, video, shots, person, action, max_shots, max_frames, min_frames) -> io.NodeOutput:
+    def execute(cls, video, shots, person, action, max_shots, max_frames, min_frames, takes, seed) -> io.NodeOutput:
         comp = video.get_components()
         frames, fps = comp.images, float(comp.frame_rate)
         H, W = frames.shape[1:3]
@@ -176,17 +192,19 @@ class CameoCast(io.ComfyNode):
         picked = sorted(judged[:max_shots], key=lambda j: j[1])
         if not picked:
             raise ValueError("The decision model found no shot with room for one more person.")
-        out = {k: [] for k in ("windows", "first", "insert", "video", "regions", "counts")}
+        out = {k: [] for k in ("windows", "first", "insert", "video", "regions", "counts", "seeds")}
         plan = {"desc": desc, "shots": []}
-        for _, s, n, a in picked:
+        for i, (_, s, n, a) in enumerate(picked):
             box, region, where = place(a)
-            out["windows"].append(frames[s:s + n])
-            out["first"].append(frames[s:s + 1])
-            out["insert"].append(insert_record(box, desc, where))
-            out["video"].append(f"A static shot. {desc} {pronoun} {action}.")
-            out["regions"].append(json.dumps([region]))
-            out["counts"].append(n)
-            plan["shots"].append({"start": s, "frames": n, "box": box, "region": region,
-                                  "framing": a["framing"]["choice"], "room": round(a["room"]["noul"], 3)})
+            for take in range(takes):
+                out["windows"].append(frames[s:s + n])
+                out["first"].append(frames[s:s + 1])
+                out["insert"].append(insert_record(box, desc, where))
+                out["video"].append(f"A static shot. {desc} {pronoun} {action}.")
+                out["regions"].append(json.dumps([region]))
+                out["counts"].append(n)
+                out["seeds"].append(seed + 1000 * i + take)
+                plan["shots"].append({"shot": i, "take": take, "start": s, "frames": n, "box": box, "region": region,
+                                      "framing": a["framing"]["choice"], "room": round(a["room"]["noul"], 3)})
         return io.NodeOutput(out["windows"], out["first"], out["insert"], out["video"], out["regions"],
-                             out["counts"], json.dumps(plan), W, H, fps)
+                             out["counts"], out["seeds"], json.dumps(plan), W, H, fps)

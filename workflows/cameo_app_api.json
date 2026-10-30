@@ -34,7 +34,9 @@
    "action": "breaks into a wild, goofy, over-the-top dance to out-dance the other kid: flailing arms, high kicks and spins",
    "max_shots": 6,
    "max_frames": 49,
-   "min_frames": 17
+   "min_frames": 17,
+   "takes": 2,
+   "seed": 1
   }
  },
  "4": {
@@ -69,11 +71,11 @@
    "base_shift": 2.772588722239781,
    "width": [
     "3",
-    7
+    8
    ],
    "height": [
     "3",
-    8
+    9
    ]
   }
  },
@@ -132,11 +134,11 @@
   "inputs": {
    "width": [
     "3",
-    7
+    8
    ],
    "height": [
     "3",
-    8
+    9
    ],
    "batch_size": 1
   }
@@ -243,7 +245,7 @@
    ],
    "frame_rate": [
     "3",
-    9
+    10
    ],
    "batch_size": 1,
    "audio_vae": [
@@ -309,7 +311,7 @@
    ],
    "frame_rate": [
     "3",
-    9
+    10
    ]
   }
  },
@@ -341,7 +343,10 @@
  "27": {
   "class_type": "RandomNoise",
   "inputs": {
-   "noise_seed": 1
+   "noise_seed": [
+    "3",
+    6
+   ]
   }
  },
  "28": {
@@ -468,7 +473,7 @@
    ],
    "plan": [
     "3",
-    6
+    7
    ],
    "generated": [
     "32",
@@ -482,6 +487,7 @@
     "36",
     0
    ],
+   "min_score": 0.3,
    "only_cast_shots": false
   }
  },
@@ -492,9 +498,18 @@
     "37",
     0
    ],
-   "filename_prefix": "cameo/app_full",
+   "filename_prefix": "cameo/app",
    "format": "mp4",
    "format.codec": "h264"
+  }
+ },
+ "39": {
+  "class_type": "PreviewAny",
+  "inputs": {
+   "source": [
+    "37",
+    1
+   ]
   }
  }
 }

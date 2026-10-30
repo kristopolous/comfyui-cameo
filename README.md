@@ -18,7 +18,9 @@ Cameo Cast         decision model (LiquidAI d1-2B) judges every shot in one forw
    ├─ Cameo Replace First Frame
    ├─ LTX-2.5             regenerates ONLY the region Cast chose (Cameo Box Noise Mask), anchored on that frame
    └─ SAM3 ×2             your matte on the generated frames, and the original people (who stay in front)
-Cameo Assemble     pastes only your matte back over the ORIGINAL frames, stitches every shot, keeps the audio
+Cameo Assemble     for every take: pastes only your matte back over the ORIGINAL frames; the decision model rates
+                   each take (are you there in every sampled frame? is anyone distorted?) and keeps the best;
+                   shots with no good take stay untouched; stitches everything and keeps the audio
 ```
 
 Why it's built this way:
@@ -26,6 +28,7 @@ Why it's built this way:
 - **A decision model is the director.** d1 returns calibrated, typed answers (choices, yes/no, counts, boxes) in a single pass with no generated text. That makes it cheap enough to judge every shot of a feature film. It decides which shots get you, where you stand, and how big you are. It also turns your photo into a description ("a man with short dark hair, wearing a navy hoodie and jeans") without a captioning LLM.
 - **Boxes are the shared language.** d1 writes boxes, FLUX 3 Klein's edit records read them (`tgt_bbox` on a 0–1000 grid), `Cameo Box Noise Mask` turns them into an LTX-2.5 latent noise mask, and SAM3 refines them into mattes.
 - **Only you come from the generators.** LTX's VAE changes pixels everywhere, so the final frame is the original film plus your SAM3 matte, minus the original people's mattes, so they stay in front of you.
+- **The decision model is also quality control.** Each shot is generated in several takes (different seeds). d1 scores each one by asking whether this specific person ("a man with short dark hair, wearing a navy hoodie and jeans") is clearly visible in sampled frames and whether everyone looks undistorted. In testing, it picked the take where you stay on screen (0.77) over the one where you vanish (0.08), and it left alone a shot where both takes failed.
 - **List execution keeps it one graph.** `Cameo Cast` emits lists, and ComfyUI runs Comfy's stock Klein, LTX and SAM3 nodes once per cast shot. No external orchestrator is needed.
 - **Lowest resolution by default.** 192 px tall at 12 fps, the distilled LTX with one stage and no upscaler, and Klein at 16 steps. A full 3-minute video with 6 cast shots renders in about 5 minutes on one RTX 4090.
 
@@ -53,7 +56,7 @@ d1-2B ([LiquidAI/d1-2B](https://huggingface.co/LiquidAI/d1-2B)) downloads itself
 
 ## Use
 
-Open `workflows/cameo_app.json` in ComfyUI. It opens in App Mode with these inputs: video URL, optional start and end times, your photo, what you do, and how many shots.
+Open `workflows/cameo_app.json` in ComfyUI. It opens in App Mode with these inputs: video URL, optional start and end times, your photo, what you do, how many shots, and how many takes per shot. The outputs are the video and a JSON report of every decision: which shots were cast, where you stand, and each take's score.
 
 ## Repo layout
 
@@ -64,7 +67,7 @@ Open `workflows/cameo_app.json` in ComfyUI. It opens in App Mode with these inpu
 ## Limits
 
 - Static or slow cameras work best. A fast camera move needs per-frame boxes, which `Cameo Box Noise Mask` already accepts.
-- Sometimes the video model drops the person after the first frame. The next step is a d1 check on each shot ("is there a second person?") that re-rolls failures.
+- Sometimes the video model drops the person after the first frame. Several takes plus d1 scoring cover most of these failures; shots where every take fails are left as filmed.
 - No video files are in this repo. Footage is fetched from a URL at run time.
 
 ## License

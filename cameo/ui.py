@@ -44,6 +44,24 @@ def convert(api, path):
     return path
 
 
+APP_INPUTS = [("CameoFetch", "url"), ("LoadImage", "image"), ("CameoCast", "action", {"height": 80}),
+              ("CameoFetch", "start"), ("CameoFetch", "end"), ("CameoCast", "max_shots"), ("CameoCast", "takes")]
+APP_OUTPUTS = ["SaveVideo", "PreviewAny"]
+
+
+def app_mode(path, inputs=APP_INPUTS, outputs=APP_OUTPUTS):
+    """Make the workflow open in App Mode with these widgets as the app's inputs and these nodes as its outputs."""
+    d = json.load(open(path))
+    by = {n["type"]: n["id"] for n in d["nodes"]}
+    d.setdefault("extra", {})
+    d["extra"]["linearMode"] = True
+    d["extra"]["linearData"] = {"inputs": [[by[t], w, *rest] for t, w, *rest in inputs if t in by],
+                                "outputs": [by[t] for t in outputs if t in by]}
+    json.dump(d, open(path, "w"))
+
+
 if __name__ == "__main__":
     convert(json.load(open(sys.argv[1])), sys.argv[2])
+    if "--app" in sys.argv:
+        app_mode(sys.argv[2])
     print("wrote", sys.argv[2])

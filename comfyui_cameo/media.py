@@ -12,6 +12,8 @@ import torch.nn.functional as F
 import folder_paths
 from comfy_api.latest import InputImpl, Types, io
 
+from .cast import rate_take
+
 
 def _run(cmd):
     env = dict(os.environ, PATH=os.path.dirname(sys.executable) + os.pathsep + os.environ.get("PATH", ""))
@@ -123,7 +125,9 @@ class CameoAssemble(io.ComfyNode):
             display_name="Cameo Assemble",
             category="cameo",
             description="Paste each shot's cameo back over the ORIGINAL frames using only the new person's matte "
-                        "(minus the original people, who stay in front), then rebuild the full video with its audio.",
+                        "(minus the original people, who stay in front). When a shot has several takes, the decision "
+                        "model rates each one (is the person there, is anyone distorted) and keeps the best. "
+                        "Then rebuild the full video with its audio.",
             is_input_list=True,
             inputs=[
                 io.Video.Input("video"),
@@ -131,19 +135,21 @@ class CameoAssemble(io.ComfyNode):
                 io.Image.Input("generated", tooltip="Per cast shot: the video model's frames."),
                 io.Mask.Input("cameo_masks", tooltip="Per cast shot: SAM3 'person' masks on the generated frames."),
                 io.Mask.Input("people_masks", tooltip="Per cast shot: SAM3 'person' masks on the original frames."),
+                io.Float.Input("min_score", default=0.3, min=0.0, max=1.0, step=0.05,
+                               tooltip="Shots whose best take the decision model rates below this stay untouched."),
                 io.Boolean.Input("only_cast_shots", default=False,
                                  tooltip="Output just the cast shots back to back instead of the whole video."),
             ],
-            outputs=[io.Video.Output(display_name="video")],
+            outputs=[io.Video.Output(display_name="video"), io.String.Output(display_name="report")],
         )
 
     @classmethod
-    def execute(cls, video, plan, generated, cameo_masks, people_masks, only_cast_shots) -> io.NodeOutput:
+    def execute(cls, video, plan, generated, cameo_masks, people_masks, min_score, only_cast_shots) -> io.NodeOutput:
         comp = video[0].get_components()
         frames = comp.images.clone()
         plan = json.loads(plan[0])
         H, W = frames.shape[1:3]
-        spans = []
+        best = {}
         for item, gen, new, ppl in zip(plan["shots"], generated, cameo_masks, people_masks):
             s, n = item["start"], item["frames"]
             gen = F.interpolate(gen[:n].movedim(-1, 1), size=(H, W), mode="bilinear").movedim(1, -1)
@@ -152,11 +158,22 @@ class CameoAssemble(io.ComfyNode):
             ppl = F.interpolate(ppl[:n, None], size=(H, W), mode="bilinear")[:, 0]
             m = _soften(_fill_gaps((new * region - ppl).clamp(0, 1)))[..., None]
             n = min(n, len(gen), len(m), len(frames) - s)
-            frames[s:s + n] = gen[:n] * m[:n] + frames[s:s + n] * (1 - m[:n])
+            take = gen[:n] * m[:n] + frames[s:s + n] * (1 - m[:n])
+            score, why = rate_take(take, plan["desc"])
+            item.update(score=round(score, 3), **why)
+            k = item.get("shot", s)
+            if k not in best or score > best[k][0]:
+                best[k] = (score, s, n, take)
+        spans = []
+        for score, s, n, take in sorted(best.values(), key=lambda b: b[1]):
+            if score < min_score[0]:
+                continue
+            frames[s:s + n] = take
             spans.append((s, s + n))
         audio = comp.audio
         if only_cast_shots[0]:
             frames = torch.cat([frames[a:b] for a, b in spans])
             audio = None
         return io.NodeOutput(InputImpl.VideoFromComponents(
-            Types.VideoComponents(images=frames, audio=audio, frame_rate=Fraction(comp.frame_rate))))
+            Types.VideoComponents(images=frames, audio=audio, frame_rate=Fraction(comp.frame_rate))),
+            json.dumps(plan, indent=1))
