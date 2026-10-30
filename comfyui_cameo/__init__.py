@@ -13,7 +13,7 @@ from typing_extensions import override
 from comfy_api.latest import ComfyExtension, io
 
 from .cast import CameoCast
-from .media import CameoAssemble, CameoFetch, CameoReplaceFirstFrame
+from .media import CameoAssemble, CameoFetch, CameoPhoto, CameoReplaceFirstFrame
 
 
 class CameoBoxNoiseMask(io.ComfyNode):
@@ -68,7 +68,7 @@ class CameoBoxNoiseMask(io.ComfyNode):
 class CameoExtension(ComfyExtension):
     @override
     async def get_node_list(self) -> list[type[io.ComfyNode]]:
-        return [CameoFetch, CameoCast, CameoReplaceFirstFrame, CameoBoxNoiseMask, CameoAssemble]
+        return [CameoFetch, CameoPhoto, CameoCast, CameoReplaceFirstFrame, CameoBoxNoiseMask, CameoAssemble]
 
 
 async def comfy_entrypoint() -> CameoExtension:

@@ -10,11 +10,29 @@ import torch
 import torch.nn.functional as F
 
 import folder_paths
-from comfy_api.latest import InputImpl, Types, io
+from comfy_api.latest import InputImpl, Types, io, ui
 
 from .cast import PLAN, rate_take
 
 SHOTS = io.Custom("CAMEO_SHOTS")
+HINT = io.Custom("CAMEO_HINT")
+
+OWN = "(my own video)"
+SUGGESTIONS = {
+    "Napoleon Dynamite: the dance": ("https://www.youtube.com/watch?v=WGdc92EOdm0", "", "",
+                                     "breaks into a wild, goofy, over-the-top dance to out-dance him: flailing arms, "
+                                     "high kicks and spins"),
+    "Pulp Fiction: the twist contest": ("https://www.youtube.com/watch?v=QYVc4v1gfgg", "1:00", "2:00",
+                                        "does the twist right beside them, completely committed, finger guns and all"),
+    "Rick Astley: Never Gonna Give You Up": ("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "0:30", "1:30",
+                                             "is a backup dancer, nailing every sway and step a beat late"),
+    "Apollo 11: planting the flag": ("https://www.youtube.com/watch?v=wd6ekSYpt9w", "", "",
+                                     "wanders into the shot, waves at the camera and photobombs the astronauts"),
+    "The Beatles: rooftop concert": ("https://www.youtube.com/watch?v=oI8Aw0IGM1I", "0:30", "1:30",
+                                     "plays furious air guitar next to the band"),
+    "Saturday Night Fever: Tony's solo": ("https://www.youtube.com/watch?v=fT42ocqmI9s", "0:20", "1:20",
+                                          "challenges him to a dance-off: disco point, spins and a knee slide"),
+}
 
 
 def _ffmpeg():
@@ -47,33 +65,87 @@ class CameoFetch(io.ComfyNode):
             display_name="Cameo Fetch Video",
             category="cameo",
             description="Download a video section from a URL (YouTube or anything yt-dlp reads) at the LOWEST "
-                        "resolution, normalize it, and split it into shots.",
+                        "resolution, normalize it, and split it into shots. Shows the clip and its title right away, "
+                        "so you can confirm it's the right video before the rest runs.",
+            is_output_node=True,
             inputs=[
-                io.String.Input("url", default="https://www.youtube.com/watch?v=WGdc92EOdm0"),
+                io.Combo.Input("suggestion", options=[*SUGGESTIONS, OWN], default=next(iter(SUGGESTIONS)),
+                               display_name="try one of these",
+                               tooltip="A ready-made scene, time range and action. Pick (my own video) to use the box below."),
+                io.String.Input("url", default="", display_name="video (URL or search)",
+                                tooltip="A video URL, or search words: the top YouTube result is used. "
+                                        "Filling this in overrides the suggestion."),
                 io.String.Input("start", default="", tooltip="Optional start time, e.g. 0:30."),
                 io.String.Input("end", default="", tooltip="Optional end time, e.g. 1:10."),
                 io.Int.Input("height", default=192, min=96, max=1080, step=32, tooltip="Keep it tiny while iterating."),
                 io.Int.Input("fps", default=12, min=6, max=30),
                 io.Float.Input("cut_threshold", default=15.0, min=1.0, max=100.0, tooltip="Shot-cut sensitivity."),
             ],
-            outputs=[io.Video.Output(display_name="video"), SHOTS.Output(display_name="shots")],
+            outputs=[io.Video.Output(display_name="video"), SHOTS.Output(display_name="shots"),
+                     io.String.Output(display_name="title"), HINT.Output(display_name="hint")],
         )
 
     @classmethod
-    def execute(cls, url, start, end, height, fps, cut_threshold) -> io.NodeOutput:
+    def execute(cls, suggestion, url, start, end, height, fps, cut_threshold) -> io.NodeOutput:
+        action = ""
+        if not url.strip() and suggestion in SUGGESTIONS:
+            url, s_start, s_end, action = SUGGESTIONS[suggestion]
+            start, end = start or s_start, end or s_end
+        if not url.strip():
+            raise ValueError("Pick a suggestion, or type a video URL or search words.")
         work = tempfile.mkdtemp(prefix="cameo_", dir=folder_paths.get_temp_directory())
         raw = os.path.join(work, "raw.mp4")
         cmd = [sys.executable, "-m", "yt_dlp", "-q", "--no-warnings", "-f", "worstvideo[height>=144]+worstaudio/worst[height>=144]/worst",
-               "--merge-output-format", "mp4", "--ffmpeg-location", _ffmpeg(), "-o", raw, "--force-overwrites"]
+               "--merge-output-format", "mp4", "--ffmpeg-location", _ffmpeg(), "-o", raw, "--force-overwrites",
+               "--no-simulate", "--print", "%(title)s (%(duration_string)s)", "--print-to-file", "%(title)s",
+               os.path.join(work, "title.txt")]
         if start or end:
             cmd += ["--download-sections", f"*{start or '0'}-{end or 'inf'}"]
-        _run(cmd + [url])
+        query = url.strip()
+        if not query.lower().startswith(("http://", "https://")):
+            query = f"ytsearch1:{query}"
+        _run(cmd + [query])
         clip = os.path.join(work, "clip.mp4")
         _run([_ffmpeg(), "-v", "error", "-y", "-i", raw, "-vf", f"fps={fps},scale=-2:{height}:flags=area,"
               f"crop=trunc(iw/32)*32:{height}", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p",
               "-c:a", "aac", clip])
         shots = _shots(clip, cut_threshold, 6)
-        return io.NodeOutput(InputImpl.VideoFromFile(clip), json.dumps(shots))
+        title_file = os.path.join(work, "title.txt")
+        title = open(title_file).read().strip() if os.path.exists(title_file) else url
+        title = f"{title} — {len(shots)} shots"
+        preview = ui.PreviewVideo([ui.SavedResult("clip.mp4", os.path.basename(work), io.FolderType.temp)])
+        return io.NodeOutput(InputImpl.VideoFromFile(clip), json.dumps(shots), title, json.dumps({"action": action}),
+                             ui=preview)
+
+
+class CameoPhoto(io.ComfyNode):
+    """Choose between an uploaded photo and a webcam snapshot; only the chosen one is evaluated."""
+
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="CameoPhoto",
+            display_name="Cameo Photo (upload or webcam)",
+            category="cameo",
+            inputs=[
+                io.Combo.Input("source", options=["photo", "webcam"], default="photo", display_name="photo of you from",
+                               tooltip="photo: the uploaded image. webcam: a snapshot taken when you press Run."),
+                io.Image.Input("photo", optional=True, lazy=True),
+                io.Image.Input("webcam", optional=True, lazy=True),
+            ],
+            outputs=[io.Image.Output(display_name="person")],
+        )
+
+    @classmethod
+    def check_lazy_status(cls, source, photo=None, webcam=None):
+        return [source] if (photo if source == "photo" else webcam) is None else []
+
+    @classmethod
+    def execute(cls, source, photo=None, webcam=None) -> io.NodeOutput:
+        image = photo if source == "photo" else webcam
+        if image is None:
+            raise ValueError(f"No {source} image: upload a photo or allow the webcam.")
+        return io.NodeOutput(image[:1])
 
 
 class CameoReplaceFirstFrame(io.ComfyNode):

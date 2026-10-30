@@ -117,14 +117,21 @@ def sam3_mask(video, text="person", threshold=0.4, prefix="cameo/sam3"):
     return g
 
 
-def cameo_app(url, photo, action="dances along, goofy and over the top", start="", end="", max_shots=4,
+def cameo_app(url, photo, action="", start="", end="", max_shots=4, make_cameo=True, suggestion="(my own video)",
+              webcam=False,
               max_frames=49, height=192, fps=12, seed=1, only_cast_shots=False, prefix="cameo/app", debug=False, takes=2):
     """The whole app as ONE ComfyUI graph: inputs are a video URL, a photo and an action; output is a video.
     CameoCast outputs lists, so the Klein / LTX / SAM3 sections run once per cast shot (list execution)."""
     g = Graph()
-    fetch = g.add("CameoFetch", url=url, start=start, end=end, height=height, fps=fps, cut_threshold=15.0)
-    person = g.add("LoadImage", image=photo)
-    cast = g.add("CameoCast", video=fetch(0), shots=fetch(1), person=person(0), action=action,
+    fetch = g.add("CameoFetch", suggestion=suggestion, url=url, start=start, end=end, height=height, fps=fps,
+                  cut_threshold=15.0)
+    g.add("PreviewAny", source=fetch(2))
+    upload = g.add("LoadImage", image=photo)
+    # webcam only in the App Mode workflow: API runs have no browser camera
+    cam = {"webcam": g.add("WebcamCapture", image=photo, width=640, height=480, capture_on_queue=True)()} if webcam else {}
+    person = g.add("CameoPhoto", source="photo", photo=upload(0), **cam)
+    cast = g.add("CameoCast", video=fetch(0), shots=fetch(1), hint=fetch(3), make_cameo=make_cameo, person=person(0),
+                 action=action,
                  max_shots=max_shots, max_frames=max_frames, min_frames=17, takes=takes, seed=seed)
     windows, firsts, inserts, vprompts, regions, counts, seeds = (cast(i) for i in range(7))
     plan, W, H, FPS = cast(7), cast(8), cast(9), cast(10)

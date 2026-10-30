@@ -8,10 +8,12 @@ from PIL import Image
 
 import comfy.model_management
 from comfy_api.latest import io
+from comfy_execution.graph_utils import ExecutionBlocker
 
 D1 = "LiquidAI/d1-2B"
 SHOTS = io.Custom("CAMEO_SHOTS")
 PLAN = io.Custom("CAMEO_PLAN")
+HINT = io.Custom("CAMEO_HINT")
 _model = None
 
 
@@ -150,9 +152,13 @@ class CameoCast(io.ComfyNode):
             inputs=[
                 io.Video.Input("video"),
                 SHOTS.Input("shots"),
+                io.Boolean.Input("make_cameo", default=True, display_name="make my cameo",
+                                 tooltip="Off: stop after the video preview, so you can check it's the right one. "
+                                         "On: cast the shots and generate. The download is cached between runs."),
                 io.Image.Input("person", tooltip="A photo of you."),
-                io.String.Input("action", default="dances along, goofy and over the top", multiline=True,
-                                tooltip="What you do in every shot."),
+                io.String.Input("action", default="", multiline=True,
+                                tooltip="What you do in every shot. Empty: the suggestion's action, or dancing along."),
+                HINT.Input("hint", optional=True),
                 io.Int.Input("max_shots", default=4, min=1, max=500),
                 io.Int.Input("max_frames", default=49, min=9, max=257, step=8, tooltip="Frames per shot (8n+1)."),
                 io.Int.Input("min_frames", default=17, min=9, max=257, step=8),
@@ -176,7 +182,11 @@ class CameoCast(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, video, shots, person, action, max_shots, max_frames, min_frames, takes, seed) -> io.NodeOutput:
+    def execute(cls, video, shots, make_cameo, person, action, max_shots, max_frames, min_frames, takes,
+                seed, hint=None) -> io.NodeOutput:
+        if not make_cameo:
+            return io.NodeOutput(*[ExecutionBlocker(None)] * 11)
+        action = action.strip() or (json.loads(hint).get("action") if hint else "") or "dances along, goofy and over the top"
         comp = video.get_components()
         frames, fps = comp.images, float(comp.frame_rate)
         H, W = frames.shape[1:3]
