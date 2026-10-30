@@ -42,8 +42,9 @@ SUGGESTIONS = {
                                                  "toe-stand"),
     "The Beatles: rooftop concert": ("https://www.youtube.com/watch?v=oI8Aw0IGM1I", "0:30", "1:30",
                                      "plays furious air guitar next to the band"),
-    "Saturday Night Fever: Tony's solo": ("https://www.youtube.com/watch?v=fT42ocqmI9s", "0:20", "1:20",
-                                          "challenges him to a dance-off: disco point, spins and a knee slide"),
+    "Abbey Road: crossing with Paul McCartney": ("https://www.youtube.com/watch?v=z5a_vQD_YzA", "", "",
+                                                 "walks down the street, completely distracted, staring at his "
+                                                 "phone"),
 }
 
 
@@ -63,9 +64,24 @@ def _run(cmd):
         raise RuntimeError(f"{cmd[0]} failed: {r.stderr[-2000:]}")
 
 
+def _seconds(t):
+    """'1:30', '0:01:30' or '90' -> 90.0; '' -> 0.0."""
+    t = (t or "").strip()
+    if not t:
+        return 0.0
+    out = 0.0
+    for part in t.split(":"):
+        out = out * 60 + float(part)
+    return out
+
+
 def _shots(path, threshold, min_len):
     from scenedetect import ContentDetector, detect
     scenes = detect(path, ContentDetector(threshold=threshold, min_scene_len=min_len))
+    if not scenes:  # one continuous shot (a webcam, a oner): the whole clip is the shot
+        import cv2
+        n = int(cv2.VideoCapture(path).get(cv2.CAP_PROP_FRAME_COUNT))
+        return [[0, n]] if n else []
     return [[a.frame_num, b.frame_num] for a, b in scenes]
 
 
@@ -119,6 +135,8 @@ class CameoFetch(io.ComfyNode):
             query = f"ytsearch1:{query}"
         _run(cmd + [query])
         clip = os.path.join(work, "clip.mp4")
+        if end and _seconds(end) <= _seconds(start):
+            end = ""  # a trim end before its start: keep everything from the start
         trim = (["-ss", start] if start else []) + (["-to", end] if end else [])
         _run([_ffmpeg(), "-v", "error", "-y", *trim, "-i", raw, "-vf", f"fps={fps},scale=-2:{height}:flags=area,"
               f"crop=trunc(iw/32)*32:{height}", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p",
@@ -132,6 +150,8 @@ class CameoFetch(io.ComfyNode):
         named = os.path.join(work, f"{safe}.mp4")
         os.link(clip, named)
         preview = ui.PreviewVideo([ui.SavedResult(os.path.basename(named), os.path.basename(work), io.FolderType.temp)])
+        # tells the page where this clip starts in the full video, so its trim buttons can set exact times
+        preview = {**preview.as_dict(), "cameo_clip": [{"start": _seconds(start), "end": _seconds(end) or None}]}
         return io.NodeOutput(InputImpl.VideoFromFile(clip), json.dumps(shots), title, json.dumps({"action": action}),
                              ui=preview)
 

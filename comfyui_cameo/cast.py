@@ -96,8 +96,17 @@ def _boxes(answer):
     return out
 
 
-def place(answers):
-    """Stand next to the biggest person, on the side with more room, at their scale. Returns (box, region, where)."""
+def moves(action):
+    """Decision model, text only: does the action carry the person across the frame (walking, crossing, running)?"""
+    a = _d1().system_one(action, {"moves": {"type": "noul", "instructions":
+        "Does this action move the person across the scene, like walking, running, crossing or wandering, "
+        "rather than staying in one spot, like dancing or standing?"}})["answers"]
+    return a["moves"]["noul"] >= 0.5
+
+
+def place(answers, travel=False):
+    """Stand next to the biggest person, on the side with more room, at their scale. Returns (box, region, where).
+    travel: the action moves across the frame, so the video model may regenerate a full-width band."""
     people = _boxes(answers.get("everyone", {}))
     if people:
         p = max(people, key=lambda b: (b["bottom"] - b["top"]) * (b["right"] - b["left"]))
@@ -108,11 +117,15 @@ def place(answers):
         side = "right" if right else "left"
         region = {"top": max(0, p["top"] - 0.15), "bottom": 1.0,
                   "left": p["right"] - 0.02 if right else 0.0, "right": 1.0 if right else p["left"] + 0.02}
+        if travel:
+            region = {"top": max(0, p["top"] - 0.15), "bottom": 1.0, "left": 0.0, "right": 1.0}
         return _grid(box), _grid(region), f"standing to the {side} of the person <ref_image_0>, at the same distance from the camera and the same size"
     s = (_boxes(answers.get("spot", {})) or [{"top": 0.3, "left": 0.6, "bottom": 0.95, "right": 0.8}])[0]
     h = max(s["bottom"] - s["top"], 0.4)
     box = {"top": max(0, s["bottom"] - h), "bottom": s["bottom"], "left": s["left"], "right": s["right"]}
     region = {"top": max(0, box["top"] - 0.15), "bottom": 1.0, "left": max(0, s["left"] - 0.15), "right": min(1, s["right"] + 0.15)}
+    if travel:
+        region = {"top": max(0, box["top"] - 0.15), "bottom": 1.0, "left": 0.0, "right": 1.0}
     return _grid(box), _grid(region), "standing in the open space"
 
 
@@ -197,6 +210,7 @@ class CameoCast(io.ComfyNode):
         frames, fps = comp.images, float(comp.frame_rate)
         H, W = frames.shape[1:3]
         desc, pronoun = describe(person[0])
+        travel = moves(action)
         judged, fallback = [], []
         for s, e in json.loads(shots):
             n = min(max_frames, e - s)
@@ -216,9 +230,9 @@ class CameoCast(io.ComfyNode):
         if not picked:
             raise ValueError("The decision model found no wide or medium shot in this video. Try another clip.")
         out = {k: [] for k in ("windows", "first", "insert", "video", "regions", "counts", "seeds")}
-        plan = {"desc": desc, "shots": []}
+        plan = {"desc": desc, "action": action, "travels": travel, "shots": []}
         for i, (_, s, n, a) in enumerate(picked):
-            box, region, where = place(a)
+            box, region, where = place(a, travel)
             for take in range(takes):
                 out["windows"].append(frames[s:s + n])
                 out["first"].append(frames[s:s + 1])

@@ -62,7 +62,7 @@ const SCENES = [
   ["Rick Astley: Never Gonna Give You Up", "Be the backup dancer, a beat late"],
   ["Michael Jackson: Billie Jean (Motown 25)", "Moonwalk right alongside him"],
   ["The Beatles: rooftop concert", "Air guitar next to the band"],
-  ["Saturday Night Fever: Tony's solo", "Challenge him to a dance-off"],
+  ["Abbey Road: crossing with Paul McCartney", "Walk past, distracted on your phone"],
 ];
 
 function cameoNodes() {
@@ -170,7 +170,8 @@ function addMakeButton() {
   if (existing && panel.contains(existing)) return;
   const bar = document.createElement("div");
   bar.className = "cameo-make";
-  bar.style.cssText = "display:flex;justify-content:center;gap:12px;align-items:center;padding:6px 0 2px;pointer-events:auto";
+  bar.style.cssText = "display:flex;flex-wrap:wrap;justify-content:center;gap:12px;align-items:center;" +
+                      "padding:10px 12px 14px;pointer-events:auto";
   const b = document.createElement("button");
   b.textContent = "Make my cameo ▶";
   b.style.cssText = "cursor:pointer;border:none;border-radius:10px;padding:10px 22px;font-size:15px;font-weight:700;" +
@@ -180,7 +181,60 @@ function addMakeButton() {
   hint.textContent = "Right video? Add your photo on the right, then";
   hint.style.cssText = "font-size:13px;opacity:.7";
   bar.append(hint, b);
-  panel.prepend(bar);
+  panel.append(bar); // under the preview, clear of the App Mode toolbar
 }
 
 new MutationObserver(() => addMakeButton()).observe(document.body, { childList: true, subtree: true });
+
+// ---- Trim: scrub the preview, then "Start here" / "End here" write exact times into start / end ----
+
+import { api } from "../../scripts/api.js";
+
+let clipStart = 0;
+api.addEventListener("executed", (e) => {
+  const clip = e.detail?.output?.cameo_clip?.[0];
+  if (clip) clipStart = clip.start || 0;
+});
+
+function stamp(seconds) {
+  const s = Math.max(0, seconds);
+  const m = Math.floor(s / 60);
+  return `${m}:${(s - m * 60).toFixed(1).padStart(4, "0")}`;
+}
+
+function previewVideo() {
+  return [...document.querySelectorAll('[data-testid="linear-center-panel"] video')]
+    .find((v) => v.getBoundingClientRect().width > 200);
+}
+
+function trimButton(label, widget) {
+  const b = document.createElement("button");
+  b.textContent = label;
+  b.style.cssText = "cursor:pointer;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:7px 12px;" +
+                    "font-size:13px;color:#eee;background:rgba(255,255,255,.06)";
+  b.addEventListener("click", () => {
+    const v = previewVideo();
+    const { fetch } = cameoNodes();
+    if (!v || !fetch) return;
+    const t = stamp(clipStart + v.currentTime);
+    setWidget(fetch, widget, t); // an end before the start is ignored by Cameo Fetch
+    b.textContent = `${label} ✓ ${t}`;
+    setTimeout(() => (b.textContent = label), 2500);
+  });
+  return b;
+}
+
+function addTrimButtons() {
+  const bar = document.querySelector(".cameo-make");
+  if (!bar || bar.querySelector(".cameo-trim")) return;
+  const trim = document.createElement("span");
+  trim.className = "cameo-trim";
+  trim.style.cssText = "display:inline-flex;gap:8px;margin-right:14px;align-items:center";
+  const hint = document.createElement("span");
+  hint.textContent = "Trim:";
+  hint.style.cssText = "font-size:13px;opacity:.7";
+  trim.append(hint, trimButton("Start here", "start"), trimButton("End here", "end"));
+  bar.prepend(trim);
+}
+
+new MutationObserver(() => addTrimButtons()).observe(document.body, { childList: true, subtree: true });
