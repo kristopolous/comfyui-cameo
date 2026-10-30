@@ -17,9 +17,21 @@ HINT = io.Custom("CAMEO_HINT")
 _model = None
 
 
+def _no_compiler():
+    import shutil
+    return not any(shutil.which(c) for c in ("cc", "gcc", "clang"))
+
+
 def _d1():
     global _model
     if _model is None:
+        if _no_compiler():
+            # d1's fused conv kernel is Triton, which JIT-compiles with a C compiler; images without one
+            # (Comfy API workers) take d1's plain PyTorch path instead. d1 checks this when it is imported.
+            import transformers.utils
+            import transformers.utils.import_utils
+            transformers.utils.is_triton_available = transformers.utils.import_utils.is_triton_available = \
+                lambda *a, **k: False
         from transformers import AutoModel
         device = comfy.model_management.get_torch_device()
         dtype = torch.bfloat16 if device.type == "cuda" else torch.float32

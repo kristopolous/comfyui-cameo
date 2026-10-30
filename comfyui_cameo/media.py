@@ -37,9 +37,9 @@ SUGGESTIONS = {
                                         "does the twist right beside them, completely committed, finger guns and all"),
     "Rick Astley: Never Gonna Give You Up": ("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "0:30", "1:30",
                                              "is a backup dancer, nailing every sway and step a beat late"),
-    "Michael Jackson: Billie Jean (Motown 25)": ("https://www.youtube.com/watch?v=iQrjmTrVx4Q", "3:00", "4:00",
-                                                 "moonwalks right alongside him, matching every spin, kick and "
-                                                 "toe-stand"),
+    "Michael Jackson: Billie Jean": ("https://www.youtube.com/watch?v=Zi_XLOBDo_Y", "1:50", "2:40",
+                                     "follows him down the light-up sidewalk, copying his moves a beat late, "
+                                     "completely committed"),
     "The Beatles: rooftop concert": ("https://www.youtube.com/watch?v=oI8Aw0IGM1I", "0:30", "1:30",
                                      "plays furious air guitar next to the band"),
     "Abbey Road: crossing with Paul McCartney": ("https://www.youtube.com/watch?v=z5a_vQD_YzA", "", "",
